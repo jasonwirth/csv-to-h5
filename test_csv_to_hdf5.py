@@ -109,7 +109,7 @@ class TestImportCSVToH5(unittest.TestCase):
 	def test_can_import_multiple_string_rows_into_database(self):
 		table = self.h5file.root.options
 
-		shape_befoe_insert = table.shape
+		shape_before_insert = table.shape
 
 		for sing_row in multiple_string_rows.split('\n'):
 
@@ -154,7 +154,7 @@ class TestImportCSVToH5(unittest.TestCase):
 		# self.assertEqual(table.shape, (8,) )
 
 		# compare table shapes that we inserted the right number of records
-		rows_inserted = table.shape[0] - shape_befoe_insert[0]
+		rows_inserted = table.shape[0] - shape_before_insert[0]
 		rows_in_data = len(multiple_string_rows.split('\n'))
 
 		self.assertEqual(rows_in_data, rows_inserted)
@@ -163,7 +163,7 @@ class TestImportCSVToH5(unittest.TestCase):
 	def test_can_insert_group_of_records(self):
 		table = self.h5file.root.options
 
-		shape_befoe_insert = table.shape
+		shape_before_insert = table.shape
 
 		# Let's convert our multiple_string_rows to somethinge useful
 		split_rows = multiple_string_rows.split('\n') 
@@ -187,7 +187,7 @@ class TestImportCSVToH5(unittest.TestCase):
 
 
 		# compare table shapes that we inserted the right number of records
-		rows_inserted = table.shape[0] - shape_befoe_insert[0]
+		rows_inserted = table.shape[0] - shape_before_insert[0]
 		rows_in_data = len(multiple_string_rows.split('\n'))
 
 		self.assertEqual(rows_in_data, rows_inserted)
@@ -201,6 +201,88 @@ class TestImportCSVToH5(unittest.TestCase):
 		os.remove(TEST_DATABASE)
 
 		print "\nTearing down test database"
+
+
+
+class TestLoadRealCSV(unittest.TestCase):
+
+
+	def setUp(self):
+		# Delete any existing files
+		if os.path.isfile(TEST_DATABASE):
+			os.remove(TEST_DATABASE)
+			print "Removing: %s" % (TEST_DATABASE)
+
+		# create database
+		self.h5file = ta.openFile(TEST_DATABASE, 'w')
+
+		# create our class / column descriptor
+		class Option(ta.IsDescription):
+			underlying_symbol = ta.StringCol(20, pos=0)
+			underlying_price = ta.Float32Col(pos=1)
+			exchange = ta.StringCol(5, pos=2)
+			option_symbol = ta.StringCol(30, pos=3)
+			option_ext = ta.StringCol(5, pos=4)
+			type = ta.StringCol(10, pos=5)
+			Expiration = ta.StringCol(10, pos=6)
+			DataDate = ta.StringCol(15, pos=7)
+			Strike = ta.StringCol(15, pos=8)
+			Last = ta.Float32Col(pos=9)
+			Bid = ta.Float32Col(pos=10)
+			Ask = ta.Float32Col(pos=11)
+			Volume = ta.IntCol(pos=12)
+			OpenInterest = ta.IntCol(pos=13)
+			IV = ta.Float32Col(pos=14)
+			Delta = ta.Float32Col(pos=15)
+			Gamma = ta.Float32Col(pos=16)
+			Theta = ta.Float32Col(pos=17)
+			Vega = ta.Float32Col(pos=18)
+			AKA = ta.StringCol(15, pos=19)
+
+
+		self.h5file.createTable('/', 'options', Option)
+
+
+	def test_load_real_csv(self):
+
+		table = self.h5file.root.options
+
+		# This is part of the test.
+		shape_before_insert = table.shape
+
+
+		data = read_csv('test_option.csv', TYPE_FUNCS)
+
+		insert_data_in_table(table, data)
+
+		# compare table shapes that we inserted the right number of records
+		rows_inserted = table.shape[0] - shape_before_insert[0]
+		self.assertEqual(len(data), rows_inserted)
+
+
+	def tearDown(self):
+		self.h5file.close()
+
+		# if raw_input("Delete File y/[n]:") is 'y':
+		# 	os.remove(TEST_DATABASE)
+		os.remove(TEST_DATABASE)
+
+		print "\nTearing down test database"
+
+
+
+class TestReadCSV(unittest.TestCase):
+	def test_open_read_and_format_CSV(self):
+		data = read_csv('test_option.csv', TYPE_FUNCS)
+
+
+		# Make sure we have a list of the approximate size
+		self.assertEqual(len(data), 517433)
+
+		# Check for types of each line
+		for line in data:
+			for element, data_type in zip(line, TYPE_FUNCS):
+				self.assertIsInstance(element, data_type)
 
 
 
